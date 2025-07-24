@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Controller</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100vh; display: flex;
+      justify-content: center; align-items: center; background: #111;
+    }
+    #joystick {
+      width: 150px; height: 150px; background: rgba(255,255,255,0.1);
+      border-radius: 50%; touch-action: none; position: relative;
+    }
+    #stick {
+      width: 60px; height: 60px; background: white;
+      border-radius: 50%; position: absolute;
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="joystick"><div id="stick"></div></div>
+
+  <script>
+    const ws = new WebSocket(`ws://${location.hostname}:3001`);
+
+    const joystick = document.getElementById('joystick');
+    const stick = document.getElementById('stick');
+
+    let dragging = false;
+    let rect, centerX, centerY;
+
+    function sendPosition(x, y) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'control', x, y }));
+        console.log("Sent:", x, y);
+      }
+    }
+
+    function onMove(clientX, clientY) {
+      const maxDist = rect.width / 2;
+      let dx = clientX - centerX;
+      let dy = clientY - centerY;
+
+      const dist = Math.min(Math.sqrt(dx*dx + dy*dy), maxDist);
+      const angle = Math.atan2(dy, dx);
+
+      dx = Math.cos(angle) * dist;
+      dy = Math.sin(angle) * dist;
+
+      const normX = dx / maxDist;
+      const normY = dy / maxDist;
+
+      stick.style.left = `${50 + normX * 50}%`;
+      stick.style.top = `${50 + normY * 50}%`;
+
+      sendPosition(normX, normY);
+    }
+
+    function resetStick() {
+      stick.style.left = '50%';
+      stick.style.top = '50%';
+      sendPosition(0, 0);
+    }
+
+    joystick.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      rect = joystick.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+      onMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (dragging) onMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('pointerup', () => {
+      dragging = false;
+      resetStick();
+    });
+  </script>
+</body>
+</html>
