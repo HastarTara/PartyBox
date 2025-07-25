@@ -9,4 +9,5 @@ voila LAN multi-client web app starting to take shape...
 
 next: 
   - start making the displays and controllers more complex
+  - look at the code again - see the 2 servers being provisioned- one to serve the pages, one to handle the control data (do they both use sockets?) 
 
